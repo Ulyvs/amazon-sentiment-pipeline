@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; background: #1a1a2e; color: white; padding: 20px; }
+        h1 { color: #e94560; text-align: center; }
+        .nav { text-align: center; margin-bottom: 20px; }
+        .nav a { color: white; margin: 0 15px; text-decoration: none;
+                 background: #16213e; padding: 8px 20px; border-radius: 5px; }
+        .nav a:hover { background: #e94560; }
+        .charts { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        .chart-box { background: #16213e; border-radius: 10px;
+                     padding: 20px; width: 500px; }
+        input { background: #16213e; color: white; border: 1px solid #e94560;
+                padding: 8px; border-radius: 5px; width: 250px; }
+        button { background: #e94560; color: white; border: none;
+                 padding: 8px 20px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>📊 Dashboard — Analyses Statistiques</h1>
+
+    <div class="nav">
+        <a href="/">🔴 Live</a>
+        <a href="/dashboard">📊 Dashboard</a>
+    </div>
+
+    <div class="charts">
+        <!-- Graphique 1 — Distribution globale -->
+        <div class="chart-box">
+            <h3>Distribution Globale des Sentiments</h3>
+            <canvas id="pieChart"></canvas>
+        </div>
+
+        <!-- Graphique 2 — Par date -->
+        <div class="chart-box">
+            <h3>Prédictions par Date</h3>
+            <canvas id="barChart"></canvas>
+        </div>
+
+        <!-- Graphique 3 — Par produit -->
+        <div class="chart-box">
+            <h3>Scoring par Produit</h3>
+            <input id="productId" placeholder="Ex: B001E4KFG0" />
+            <button onclick="loadProduct()">Analyser</button>
+            <canvas id="productChart" style="margin-top:15px"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Graphique 1 — Camembert global
+        fetch('/api/stats').then(r => r.json()).then(data => {
+            new Chart(document.getElementById('pieChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Positif', 'Neutre', 'Négatif'],
+                    datasets: [{
+                        data: [data.positive, data.neutral, data.negative],
+                        backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c']
+                    }]
+                }
+            });
+        });
+
+        // Graphique 2 — Barres par date
+        fetch('/api/by_date').then(r => r.json()).then(data => {
+            const dates    = [...new Set(data.map(d => d.date))].sort();
+            const positive = dates.map(d => {
+                const f = data.find(x => x.date === d && x.label === 'positive');
+                return f ? f.count : 0;
+            });
+            const neutral = dates.map(d => {
+                const f = data.find(x => x.date === d && x.label === 'neutral');
+                return f ? f.count : 0;
+            });
+            const negative = dates.map(d => {
+                const f = data.find(x => x.date === d && x.label === 'negative');
+                return f ? f.count : 0;
+            });
+
+            new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        { label: 'Positif', data: positive, backgroundColor: '#2ecc71' },
+                        { label: 'Neutre',  data: neutral,  backgroundColor: '#f39c12' },
+                        { label: 'Négatif', data: negative, backgroundColor: '#e74c3c' }
+                    ]
+                },
+                options: { scales: { x: { stacked: true }, y: { stacked: true } } }
+            });
+        });
+
+        // Graphique 3 — Par produit
+        let productChart = null;
+        function loadProduct() {
+            const productId = document.getElementById('productId').value;
+            fetch(`/api/product/${productId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (productChart) productChart.destroy();
+                    productChart = new Chart(
+                        document.getElementById('productChart'), {
+                        type: 'pie',
+                        data: {
+                            labels: data.map(d => d.label),
+                            datasets: [{
+                                data: data.map(d => d.count),
+                                backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c']
+                            }]
+                        }
+                    });
+                });
+        }
+    </script>
+</body>
+</html>

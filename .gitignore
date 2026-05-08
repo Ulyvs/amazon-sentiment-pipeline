@@ -1,0 +1,8 @@
+data/Reviews.csv
+data/train.csv
+data/val.csv
+data/test.csv
+models/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
