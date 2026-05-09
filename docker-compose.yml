@@ -49,7 +49,14 @@ services:
   spark-master:
     image: apache/spark:latest
     container_name: amazon-spark-master
-    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    user: root
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+    command: >
+      bash -c "pip install kafka-python pymongo numpy pandas scikit-learn &&
+               /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
     ports:
       - "8090:8080"
       - "7077:7077"
@@ -57,7 +64,7 @@ services:
       - ./spark:/opt/spark-apps
       - ./data:/opt/spark-data
       - ./models:/opt/spark-models
-
+      
   spark-worker:
     image: apache/spark:latest
     container_name: amazon-spark-worker
