@@ -28,14 +28,28 @@ collection = client["amazon_db"]["predictions"]
 print("✅ MongoDB connecté")
 
 # ── Connexion Kafka ──
-consumer = KafkaConsumer(
-    "amazon-reviews",
-    bootstrap_servers="amazon-kafka:29092",
-    value_deserializer=lambda v: json.loads(v.decode("utf-8")),
-    auto_offset_reset="earliest",
-    group_id="amazon-consumer-group"
-)
-print("✅ Kafka connecté")
+# Connexion Kafka avec retry
+import time
+
+print("⏳ Connexion à Kafka...")
+max_retries = 10
+for i in range(max_retries):
+    try:
+        consumer = KafkaConsumer(
+            "amazon-reviews",
+            bootstrap_servers="amazon-kafka:29092",
+            value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+            auto_offset_reset="earliest",
+            group_id="amazon-consumer-group"
+        )
+        print("✅ Kafka connecté")
+        break
+    except Exception as e:
+        print(f"⏳ Kafka pas prêt, retry {i+1}/{max_retries}...")
+        time.sleep(10)
+else:
+    print("❌ Impossible de se connecter à Kafka")
+    exit(1)
 print("⏳ En attente des messages...")
 
 label_map = {0.0: "negative", 1.0: "neutral", 2.0: "positive"}
